@@ -35,6 +35,13 @@ namespace SmartCmdArgs.ViewModel
             set => SetAndNotify(value, ref useMonospaceFont);
         }
 
+
+        private bool showLoadQuestion;
+        public bool ShowLoadQuestion {
+            get => showLoadQuestion;
+            set => SetAndNotify(value, ref showLoadQuestion);
+        }
+
         public RelayCommand AddEntryCommand { get; }
 
         public RelayCommand AddGroupCommand { get; }
@@ -80,6 +87,10 @@ namespace SmartCmdArgs.ViewModel
         public RelayCommand ToggleDefaultCheckedCommand { get; }
 
         public RelayCommand ResetToDefaultCheckedCommand { get; }
+
+        public RelayCommand LoadArgumentsFromProjects { get; }
+
+        public RelayCommand LoadArgumentsFromJson { get; }
 
         public ToolWindowViewModel(CmdArgsPackage package)
         {
@@ -280,6 +291,18 @@ namespace SmartCmdArgs.ViewModel
                 TreeViewModel.ResetToDefaultChecked();
                 ToolWindowHistory.Resume();
             }, _ => HasSelectedItems());
+
+            LoadArgumentsFromProjects = new RelayCommand(() =>
+            {
+                CmdArgsPackage.LoadMissingArgsFromProject = true;
+                CmdArgsPackage.IsInSleepMode = false;
+            });
+
+            LoadArgumentsFromJson = new RelayCommand(() =>
+            {
+                CmdArgsPackage.LoadMissingArgsFromProject = false;
+                CmdArgsPackage.IsInSleepMode = false;
+            });
         }
 
 

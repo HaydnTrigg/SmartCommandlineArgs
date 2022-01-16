@@ -22,6 +22,7 @@
     </UserControl.Resources>
     <Grid>
         <local:TreeViewEx x:Name="treeView"
+                          Visibility="{Binding ShowLoadQuestion, Converter={c:BoolToVisibilityConverter Inverted=True, HideVisibility=Collapsed}}"
                           ItemsSource="{Binding TreeViewModel.TreeItemsView}"
                           SelectIndexCommand="{Binding TreeViewModel.SelectIndexCommand, Mode=OneWayToSource}"
                           SelectItemCommand="{Binding TreeViewModel.SelectItemCommand, Mode=OneWayToSource}"
@@ -53,5 +54,13 @@
                                                 ArgumentItemTemplate="{StaticResource ArgumentDataTemplate}" />
             </local:TreeViewEx.ItemTemplateSelector>
         </local:TreeViewEx>
+
+        <StackPanel Orientation="Horizontal" 
+                    VerticalAlignment="Center" 
+                    HorizontalAlignment="Center"
+                    Visibility="{Binding ShowLoadQuestion, Converter={c:BoolToVisibilityConverter Inverted=False, HideVisibility=Collapsed}}">
+            <Button Content="Load from Projects" Padding="5,0,5,0" Command="{Binding LoadArgumentsFromProjects}"/>
+            <Button Margin="10,0,0,0" Content="Use existing json files" Padding="5,0,5,0" Command="{Binding LoadArgumentsFromJson}"/>
+        </StackPanel>
     </Grid>
 </UserControl>
