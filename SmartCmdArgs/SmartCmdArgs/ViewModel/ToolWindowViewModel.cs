@@ -108,7 +108,7 @@ namespace SmartCmdArgs.ViewModel
                     var newArg = new CmdArgument(arg: "", isChecked: true);
                     TreeViewModel.AddItemAtFocusedItem(newArg);
                     TreeViewModel.SelectItemCommand.SafeExecute(newArg);
-                }, canExecute: _ => HasStartupProject());
+                }, canExecute: _ => !ShowLoadQuestion && HasStartupProject());
 
             AddGroupCommand = new RelayCommand(
                 () => {
@@ -116,24 +116,24 @@ namespace SmartCmdArgs.ViewModel
                     var newGrp = new CmdGroup(name: "");
                     TreeViewModel.AddItemAtFocusedItem(newGrp);
                     TreeViewModel.SelectItemCommand.SafeExecute(newGrp);
-                }, canExecute: _ => HasStartupProject());
+                }, canExecute: _ => !ShowLoadQuestion && HasStartupProject());
 
             RemoveEntriesCommand = new RelayCommand(
                 () => {
                     RemoveSelectedItems();
-                }, canExecute: _ => HasStartupProjectAndSelectedItems() && !HasSingleSelectedItemOfType<CmdProject>());
+                }, canExecute: _ => !ShowLoadQuestion && HasStartupProjectAndSelectedItems() && !HasSingleSelectedItemOfType<CmdProject>());
 
             MoveEntriesUpCommand = new RelayCommand(
                 () => {
                     ToolWindowHistory.SaveState();
                     TreeViewModel.MoveSelectedEntries(moveDirection: -1);
-                }, canExecute: _ => HasStartupProjectAndSelectedItems());
+                }, canExecute: _ => !ShowLoadQuestion && HasStartupProjectAndSelectedItems());
 
             MoveEntriesDownCommand = new RelayCommand(
                 () => {
                     ToolWindowHistory.SaveState();
                     TreeViewModel.MoveSelectedEntries(moveDirection: 1);
-                }, canExecute: _ => HasStartupProjectAndSelectedItems());
+                }, canExecute: _ => !ShowLoadQuestion && HasStartupProjectAndSelectedItems());
 
             CopyCommandlineCommand = new RelayCommand(
                 () => {
@@ -147,13 +147,13 @@ namespace SmartCmdArgs.ViewModel
                     
                     // copy=false see #58
                     Clipboard.SetDataObject(prjCmdArgs, copy: false);                   
-                }, canExecute: _ => HasStartupProject());
+                }, canExecute: _ => !ShowLoadQuestion && HasStartupProject());
 
             ShowAllProjectsCommand = new RelayCommand(
                 () => {
                     ToolWindowHistory.SaveState();
                     TreeViewModel.ShowAllProjects = !TreeViewModel.ShowAllProjects;
-                });
+                }, canExecute: _ => !ShowLoadQuestion && TreeViewModel.AllProjects.Any());
 
             ShowSettingsCommand = new RelayCommand(
                 () => {
@@ -163,7 +163,7 @@ namespace SmartCmdArgs.ViewModel
                         SettingsViewModel.Assign(settingsClone);
                         package.SaveSettings();
                     }
-                });
+                }, canExecute: _ => !ShowLoadQuestion && CmdArgsPackage.IsSolutionOpen);
 
             ToggleSelectedCommand = new RelayCommand(
                 () => {

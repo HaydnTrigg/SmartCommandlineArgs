@@ -105,6 +105,8 @@ namespace SmartCmdArgs
         private bool IsUseMonospaceFontEnabled => GetDialogPage<CmdArgsOptionPage>().UseMonospaceFont;
         public bool IsUseSolutionDirEnabled => ToolWindowViewModel.SettingsViewModel.UseSolutionDir;
 
+        public bool IsSolutionOpen => vsHelper.IsSolutionOpen;
+
         // We store the commandline arguments also in the suo file.
         // This is handled in the OnLoad/SaveOptions methods.
         // As the parser needs a initialized instance of vsHelper,
@@ -157,6 +159,10 @@ namespace SmartCmdArgs
             vsHelper = new VisualStudioHelper(this);
             fileStorage = new FileStorage(this, vsHelper);
 
+            vsHelper.SolutionAfterOpen += VsHelper_SolutionOpend;
+            vsHelper.SolutionBeforeClose += VsHelper_SolutionWillClose;
+            vsHelper.SolutionAfterClose += VsHelper_SolutionClosed;
+
             await vsHelper.InitializeAsync();
 
             // Switch to main thread
@@ -165,7 +171,7 @@ namespace SmartCmdArgs
             GetDialogPage<CmdArgsOptionPage>().UseMonospaceFontChanged += OptionPage_UseMonospaceFontChanged;
 
             // Extension window was opend while a solution is already open
-            if (vsHelper.IsSolutionOpen)
+            if (IsSolutionOpen)
             {
                 Logger.Info("Package.Initialize called while solution was already open.");
 
@@ -203,9 +209,9 @@ namespace SmartCmdArgs
 
         private void AttachToEvents()
         {
-            vsHelper.SolutionAfterOpen += VsHelper_SolutionOpend;
-            vsHelper.SolutionBeforeClose += VsHelper_SolutionWillClose;
-            vsHelper.SolutionAfterClose += VsHelper_SolutionClosed;
+            //vsHelper.SolutionAfterOpen += VsHelper_SolutionOpend;
+            //vsHelper.SolutionBeforeClose += VsHelper_SolutionWillClose;
+            //vsHelper.SolutionAfterClose += VsHelper_SolutionClosed;
             vsHelper.StartupProjectChanged += VsHelper_StartupProjectChanged;
             vsHelper.StartupProjectConfigurationChanged += VsHelper_StartupProjectConfigurationChanged;
             vsHelper.ProjectBeforeRun += VsHelper_ProjectWillRun;
@@ -226,9 +232,9 @@ namespace SmartCmdArgs
 
         private void DetachFromEvents()
         {
-            vsHelper.SolutionAfterOpen -= VsHelper_SolutionOpend;
-            vsHelper.SolutionBeforeClose -= VsHelper_SolutionWillClose;
-            vsHelper.SolutionAfterClose -= VsHelper_SolutionClosed;
+            //vsHelper.SolutionAfterOpen -= VsHelper_SolutionOpend;
+            //vsHelper.SolutionBeforeClose -= VsHelper_SolutionWillClose;
+            //vsHelper.SolutionAfterClose -= VsHelper_SolutionClosed;
             vsHelper.StartupProjectChanged -= VsHelper_StartupProjectChanged;
             vsHelper.StartupProjectConfigurationChanged -= VsHelper_StartupProjectConfigurationChanged;
             vsHelper.ProjectBeforeRun -= VsHelper_ProjectWillRun;
@@ -247,9 +253,14 @@ namespace SmartCmdArgs
             ToolWindowViewModel.TreeViewModel.TreeContentChanged -= OnTreeContentChanged;
         }
 
+        private void UpdateQuestionDisplay()
+        {
+            ToolWindowViewModel.ShowLoadQuestion = IsInSleepMode && IsSolutionOpen;
+        }
+
         private void SleepModeChanged()
         {
-            ToolWindowViewModel.ShowLoadQuestion = IsInSleepMode;
+            UpdateQuestionDisplay();
 
             if (IsInSleepMode)
             {
@@ -665,8 +676,8 @@ namespace SmartCmdArgs
         {
             Logger.Info("VS-Event: Solution opened.");
 
+            UpdateQuestionDisplay();
             InitializeSuoDataForSolution();
-            InitializeDataForSolution();
         }
 
         private void VsHelper_SolutionWillClose(object sender, EventArgs e)
@@ -681,6 +692,7 @@ namespace SmartCmdArgs
             Logger.Info("VS-Event: Solution closed.");
 
             ToolWindowViewModel.Reset();
+            UpdateQuestionDisplay();
             suoDataStr = "";
             suoDataJson = null;
         }
