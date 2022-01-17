@@ -55,12 +55,28 @@
             </local:TreeViewEx.ItemTemplateSelector>
         </local:TreeViewEx>
 
-        <StackPanel Orientation="Horizontal" 
+        <StackPanel Visibility="{Binding ShowLoadQuestion, Converter={c:BoolToVisibilityConverter Inverted=False, HideVisibility=Collapsed}}"
+                    Orientation="Vertical"
                     VerticalAlignment="Center" 
-                    HorizontalAlignment="Center"
-                    Visibility="{Binding ShowLoadQuestion, Converter={c:BoolToVisibilityConverter Inverted=False, HideVisibility=Collapsed}}">
-            <Button Content="Load from Projects" Padding="5,0,5,0" Command="{Binding LoadArgumentsFromProjects}"/>
-            <Button Margin="10,0,0,0" Content="Use existing json files" Padding="5,0,5,0" Command="{Binding LoadArgumentsFromJson}"/>
+                    HorizontalAlignment="Center">
+            <TextBlock TextWrapping="Wrap">
+                It seems that this solution was never used with this extension.
+                <LineBreak />
+                You have the following options:
+                <LineBreak />
+                • Load existing arguments from projects
+            </TextBlock>
+            <TextBlock Visibility="Collapsed">
+                • Create new arguments in the extension
+            </TextBlock>
+            <TextBlock Visibility="Visible">
+                • Load existing arguments from the extensions json file
+            </TextBlock>
+            <StackPanel x:Name="ButtonsPanel" Orientation="Horizontal" Margin="0, 10, 0, 0">
+                <Button x:Name="LoadFromProjectsBtn" Content="Load from Projects" Padding="5,0,5,0" Command="{Binding LoadArgumentsFromProjects}"/>
+                <Button x:Name="CreateNewArgsBtn" Margin="10,0,0,0" Content="Create new arguments" Padding="5,0,5,0" Command="{Binding LoadArgumentsFromJson}" Visibility="Collapsed"/>
+                <Button x:Name="LoadFromJsonBtn" Margin="10,0,0,0" Content="Use existing json files" Padding="5,0,5,0" Command="{Binding LoadArgumentsFromJson}" Visibility="Visible"/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </UserControl>
