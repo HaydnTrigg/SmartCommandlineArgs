@@ -175,11 +175,11 @@ namespace SmartCmdArgs
             {
                 Logger.Info("Package.Initialize called while solution was already open.");
 
-                InitializeSuoDataForSolution();
-                InitializeDataForSolution();
+                InitializeConfigForSolution();
             }
 
-            ToolWindowViewModel.ShowLoadQuestion = IsInSleepMode;
+            UpdateQuestionDisplay();
+
             ToolWindowViewModel.UseMonospaceFont = IsUseMonospaceFontEnabled;
 
             await base.InitializeAsync(cancellationToken, progress);
@@ -209,9 +209,6 @@ namespace SmartCmdArgs
 
         private void AttachToEvents()
         {
-            //vsHelper.SolutionAfterOpen += VsHelper_SolutionOpend;
-            //vsHelper.SolutionBeforeClose += VsHelper_SolutionWillClose;
-            //vsHelper.SolutionAfterClose += VsHelper_SolutionClosed;
             vsHelper.StartupProjectChanged += VsHelper_StartupProjectChanged;
             vsHelper.StartupProjectConfigurationChanged += VsHelper_StartupProjectConfigurationChanged;
             vsHelper.ProjectBeforeRun += VsHelper_ProjectWillRun;
@@ -232,9 +229,6 @@ namespace SmartCmdArgs
 
         private void DetachFromEvents()
         {
-            //vsHelper.SolutionAfterOpen -= VsHelper_SolutionOpend;
-            //vsHelper.SolutionBeforeClose -= VsHelper_SolutionWillClose;
-            //vsHelper.SolutionAfterClose -= VsHelper_SolutionClosed;
             vsHelper.StartupProjectChanged -= VsHelper_StartupProjectChanged;
             vsHelper.StartupProjectConfigurationChanged -= VsHelper_StartupProjectConfigurationChanged;
             vsHelper.ProjectBeforeRun -= VsHelper_ProjectWillRun;
@@ -256,27 +250,6 @@ namespace SmartCmdArgs
         private void UpdateQuestionDisplay()
         {
             ToolWindowViewModel.ShowLoadQuestion = IsInSleepMode && IsSolutionOpen;
-        }
-
-        private void SleepModeChanged()
-        {
-            UpdateQuestionDisplay();
-
-            if (IsInSleepMode)
-            {
-                // Save data
-                fileStorage.SaveAllProjects();
-                UpdateSuoData();
-
-                DetachFromEvents();
-                fileStorage.RemoveAllProjects();
-                ToolWindowViewModel.Reset();
-            }
-            else
-            {
-                AttachToEvents();
-                InitializeDataForSolution();
-            }
         }
 
         private void OnItemSelectionChanged(object sender, CmdBase cmdBase)
@@ -307,6 +280,7 @@ namespace SmartCmdArgs
         {
             suoDataJson = SuoDataSerializer.Serialize(ToolWindowViewModel);
             suoDataJson.IsInSleepMode = IsInSleepMode;
+            suoDataJson.LoadMissingArgsFromProject = LoadMissingArgsFromProject;
 
             suoDataStr = JsonConvert.SerializeObject(suoDataJson);
         }
@@ -606,6 +580,7 @@ namespace SmartCmdArgs
 
                 if (LoadMissingArgsFromProject)
                 {
+                    Logger.Info($"Gathering commands from configurations for project '{project.GetName()}'.");
                     var args = ReadCommandlineArgumentsFromProject(project);
                     projectData.Items.AddRange(args);
                 }
@@ -637,10 +612,14 @@ namespace SmartCmdArgs
             }
             else
             {
-                Logger.Info($"Gathering commands from configurations for project '{project.GetName()}'.");
-                // if we don't have suo file data we read cmd args from the project configs
                 projectData = new ProjectDataJson();
-                projectData.Items.AddRange(ReadCommandlineArgumentsFromProject(project));
+
+                if (LoadMissingArgsFromProject)
+                {
+                    Logger.Info($"Gathering commands from configurations for project '{project.GetName()}'.");
+                    // if we don't have suo file data we read cmd args from the project configs
+                    projectData.Items.AddRange(ReadCommandlineArgumentsFromProject(project));
+                }
             }
 
             // push projectData to the ViewModel
@@ -649,19 +628,37 @@ namespace SmartCmdArgs
             Logger.Info($"Updated Commands for project '{project.GetName()}'.");
         }
 
-        private void InitializeSuoDataForSolution()
+        private void SleepModeChanged()
+        {
+            UpdateQuestionDisplay();
+
+            if (IsInSleepMode)
+            {
+                // Sleep can only be set from false to true while no solution is open
+                // this happens in the VsHelper_SolutionClosed event handler
+                Debug.Assert(!IsSolutionOpen);
+                DetachFromEvents();
+            }
+            else
+            {
+                AttachToEvents();
+                InitializeDataForSolution();
+            }
+        }
+
+        private void InitializeConfigForSolution()
         {
             suoDataJson = Logic.SuoDataSerializer.Deserialize(suoDataStr, vsHelper);
 
+            LoadSettings();
+
+            LoadMissingArgsFromProject = suoDataJson.LoadMissingArgsFromProject;
             IsInSleepMode = suoDataJson.IsInSleepMode;
         }
 
         private void InitializeDataForSolution()
         {
-            if (IsInSleepMode)
-                return;
-
-            LoadSettings();
+            Debug.Assert(!IsInSleepMode);
 
             foreach (var project in vsHelper.GetSupportedProjects())
             {
@@ -677,7 +674,7 @@ namespace SmartCmdArgs
             Logger.Info("VS-Event: Solution opened.");
 
             UpdateQuestionDisplay();
-            InitializeSuoDataForSolution();
+            InitializeConfigForSolution();
         }
 
         private void VsHelper_SolutionWillClose(object sender, EventArgs e)
@@ -692,6 +689,7 @@ namespace SmartCmdArgs
             Logger.Info("VS-Event: Solution closed.");
 
             ToolWindowViewModel.Reset();
+            IsInSleepMode = true;
             UpdateQuestionDisplay();
             suoDataStr = "";
             suoDataJson = null;
